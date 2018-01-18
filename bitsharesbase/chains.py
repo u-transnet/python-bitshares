@@ -20,7 +20,7 @@ known_chains = {
         "core_symbol": "SCNRFP",
         "prefix": "SCNRFP"},
     "UTT": {
-        "chain_id": "b200ac5f59d98ae815805128edf9de5aaf7b957b94aa7f004ced635f8e0364ac",
+        "chain_id": "773a625737a4686a40d832569f1691730bba2c1adc8009ee6b341b71fff35c18",
         "core_symbol": "UTT",
         "prefix": "UTT"}
 }
