@@ -11,24 +11,24 @@ except LookupError:
     ascii = codecs.lookup('ascii')
     codecs.register(lambda name, enc=ascii: {True: enc}.get(name == 'mbcs'))
 
-VERSION = '0.1.8'
+VERSION = '0.1.10'
 
 setup(
-    name='bitshares',
+    name='python-utransnet',
     version=VERSION,
-    description='Python library for bitshares',
+    description='Python library for transnet',
     long_description=open('README.md').read(),
-    download_url='https://github.com/xeroc/python-bitshares/tarball/' + VERSION,
+    download_url='https://github.com/u-transnet/python-utransnet/tarball/' + VERSION,
     author='Fabian Schuh',
     author_email='Fabian@chainsquad.com',
-    maintainer='Fabian Schuh',
-    maintainer_email='Fabian@chainsquad.com',
-    url='http://www.github.com/xeroc/python-bitshares',
-    keywords=['bitshares', 'library', 'api', 'rpc'],
+    maintainer='Ilya Shmelev',
+    maintainer_email='ishmelev23@gmail.com',
+    url='http://www.github.com/u-transnet/python-transnet',
+    keywords=['transnet', 'library', 'api', 'rpc'],
     packages=[
-        "bitshares",
-        "bitsharesapi",
-        "bitsharesbase"
+        "transnet",
+        "transnetapi",
+        "transnetbase"
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
@@ -48,7 +48,7 @@ setup(
         "appdirs",
         "Events",
         "scrypt",
-        "pycrypto",  # for AES, installed through graphenelib already
+        "pycryptodome"  # for AES, installed through graphenelib already
     ],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
