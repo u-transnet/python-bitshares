@@ -1,7 +1,12 @@
+import hashlib
 import json
 import logging
+from binascii import unhexlify
 
 from datetime import datetime, timedelta
+
+from graphenebase.base58 import ripemd160
+
 from transnetapi.transnetnoderpc import TransnetNodeRPC
 from transnetbase.account import PrivateKey, PublicKey
 from transnetbase import transactions, operations
@@ -329,10 +334,10 @@ class Transnet(object):
         return self._txbuffers[0]
 
     def proposal(
-        self,
-        proposer=None,
-        proposal_expiration=None,
-        proposal_review=None
+            self,
+            proposer=None,
+            proposal_expiration=None,
+            proposal_review=None
     ):
         """ Return the default proposal buffer
 
@@ -355,11 +360,11 @@ class Transnet(object):
         return self._propbuffer[0]
 
     def new_proposal(
-        self,
-        parent=None,
-        proposer=None,
-        proposal_expiration=None,
-        proposal_review=None
+            self,
+            parent=None,
+            proposer=None,
+            proposal_expiration=None,
+            proposal_review=None
     ):
         if not parent:
             parent = self.tx()
@@ -451,25 +456,109 @@ class Transnet(object):
         return self.finalizeOp(op, account, "active", **kwargs)
 
     # -------------------------------------------------------------------------
+    # AtomicSwap operations
+    # -------------------------------------------------------------------------
+
+    def atomicswap_create_secret_hash(self, secret):
+        def cut_hash(hash_str):
+            entropy_percent = 50
+            entropy = entropy_percent + len(secret) % entropy_percent
+            entropy += 1
+            out_size = int(len(hash_str) * entropy / entropy_percent / 2)
+            return hash_str[:out_size]
+
+        def encode_ripemd160(s):
+            ripemd160 = hashlib.new('ripemd160')
+            ripemd160.update(unhexlify(s))
+            return ripemd160.hexdigest()
+
+        sha512_hash = hashlib.sha512(secret)
+        return encode_ripemd160(cut_hash(sha512_hash.hexdigest()))
+
+    def atomicswap_initiate(self, operation_type, owner, recipient, amount, asset, secret_hash, **kwargs):
+        if not owner:
+            if "default_account" in config:
+                owner = config["default_account"]
+        if not owner:
+            raise ValueError("You need to provide an account")
+
+        owner = Account(owner, transnet_instance=self)
+        amount = Amount(amount, asset, transnet_instance=self)
+        recipient = Account(recipient, transnet_instance=self)
+
+        op = operations.Atomicswap_initiate(**{
+            "fee": {"amount": 0, "asset_id": "1.3.0"},
+            "type": operation_type,
+            "owner": owner["id"],
+            "recipient": recipient["id"],
+            "amount": {
+                "amount": int(amount),
+                "asset_id": amount.asset["id"]
+            },
+            "secret_hash": secret_hash,
+            "prefix": self.prefix,
+        })
+
+        return self.finalizeOp(op, owner, "active", **kwargs)
+
+    def atomicswap_redeem(self, owner, recipient, secret, **kwargs):
+        if not owner:
+            if "default_account" in config:
+                owner = config["default_account"]
+        if not owner:
+            raise ValueError("You need to provide an account")
+
+        owner = Account(owner, transnet_instance=self)
+        recipient = Account(recipient, transnet_instance=self)
+
+        op = operations.Atomicswap_redeem(**{
+            "fee": {"amount": 0, "asset_id": "1.3.0"},
+            "from": owner["id"],
+            "to": recipient["id"],
+            "secret": secret,
+            "prefix": self.prefix,
+        })
+        return self.finalizeOp(op, owner, "active", **kwargs)
+
+    def atomicswap_refund(self, owner, recipient, secret_hash, **kwargs):
+        if not owner:
+            if "default_account" in config:
+                owner = config["default_account"]
+        if not owner:
+            raise ValueError("You need to provide an account")
+
+        owner = Account(owner, transnet_instance=self)
+        recipient = Account(recipient, transnet_instance=self)
+
+        op = operations.Atomicswap_refund(**{
+            "fee": {"amount": 0, "asset_id": "1.3.0"},
+            "initiator": owner["id"],
+            "participant": recipient["id"],
+            "secret_hash": secret_hash,
+            "prefix": self.prefix,
+        })
+        return self.finalizeOp(op, owner, "active", **kwargs)
+
+    # -------------------------------------------------------------------------
     # Account related calls
     # -------------------------------------------------------------------------
     def create_account(
-        self,
-        account_name,
-        registrar=None,
-        referrer="1.2.35641",
-        referrer_percent=50,
-        owner_key=None,
-        active_key=None,
-        memo_key=None,
-        password=None,
-        additional_owner_keys=[],
-        additional_active_keys=[],
-        additional_owner_accounts=[],
-        additional_active_accounts=[],
-        proxy_account="proxy-to-self",
-        storekeys=True,
-        **kwargs
+            self,
+            account_name,
+            registrar=None,
+            referrer="1.2.35641",
+            referrer_percent=50,
+            owner_key=None,
+            active_key=None,
+            memo_key=None,
+            password=None,
+            additional_owner_keys=[],
+            additional_active_keys=[],
+            additional_owner_accounts=[],
+            additional_active_accounts=[],
+            proxy_account="proxy-to-self",
+            storekeys=True,
+            **kwargs
     ):
         """ Create new account on Transnet
 
@@ -654,8 +743,8 @@ class Transnet(object):
             raise ValueError("Cannot have threshold of 0")
 
     def allow(
-        self, foreign, weight=None, permission="active",
-        account=None, threshold=None, **kwargs
+            self, foreign, weight=None, permission="active",
+            account=None, threshold=None, **kwargs
     ):
         """ Give additional access to an account by some other public
             key or account.
@@ -723,8 +812,8 @@ class Transnet(object):
             return self.finalizeOp(op, account["name"], "active", **kwargs)
 
     def disallow(
-        self, foreign, permission="active",
-        account=None, threshold=None, **kwargs
+            self, foreign, permission="active",
+            account=None, threshold=None, **kwargs
     ):
         """ Remove additional access to an account by some other public
             key or account.
@@ -987,7 +1076,7 @@ class Transnet(object):
         return self.finalizeOp(op, account["name"], "active", **kwargs)
 
     def approveproposal(
-        self, proposal_ids, account=None, approver=None, **kwargs
+            self, proposal_ids, account=None, approver=None, **kwargs
     ):
         """ Approve Proposal
 
@@ -1037,7 +1126,7 @@ class Transnet(object):
         return self.finalizeOp(op, approver["name"], "active", **kwargs)
 
     def disapproveproposal(
-        self, proposal_ids, account=None, approver=None, **kwargs
+            self, proposal_ids, account=None, approver=None, **kwargs
     ):
         """ Disapprove Proposal
 
@@ -1198,13 +1287,13 @@ class Transnet(object):
         return self.finalizeOp(op, account["name"], "active")
 
     def publish_price_feed(
-        self,
-        symbol,
-        settlement_price,
-        cer=None,
-        mssr=110,
-        mcr=200,
-        account=None
+            self,
+            symbol,
+            settlement_price,
+            cer=None,
+            mssr=110,
+            mcr=200,
+            account=None
     ):
         """ Publish a price feed for a market-pegged asset
 
@@ -1233,11 +1322,11 @@ class Transnet(object):
         asset = Asset(symbol, transnet_instance=self, full=True)
         backing_asset = asset["bitasset_data"]["options"]["short_backing_asset"]
         assert asset["id"] == settlement_price["base"]["asset"]["id"] or \
-            asset["id"] == settlement_price["quote"]["asset"]["id"], \
+               asset["id"] == settlement_price["quote"]["asset"]["id"], \
             "Price needs to contain the asset of the symbol you'd like to produce a feed for!"
         assert asset.is_bitasset, "Symbol needs to be a bitasset!"
         assert settlement_price["base"]["asset"]["id"] == backing_asset or \
-            settlement_price["quote"]["asset"]["id"] == backing_asset, \
+               settlement_price["quote"]["asset"]["id"] == backing_asset, \
             "The Price needs to be relative to the backing collateral!"
 
         settlement_price = settlement_price.as_base(symbol)
@@ -1314,16 +1403,16 @@ class Transnet(object):
         return self.finalizeOp(op, account, "active", **kwargs)
 
     def create_worker(
-        self,
-        name,
-        daily_pay,
-        end,
-        url="",
-        begin=None,
-        payment_type="vesting",
-        pay_vesting_period_days=0,
-        account=None,
-        **kwargs
+            self,
+            name,
+            daily_pay,
+            end,
+            url="",
+            begin=None,
+            payment_type="vesting",
+            pay_vesting_period_days=0,
+            account=None,
+            **kwargs
     ):
         """ Reserve/Burn an amount of this shares
 
