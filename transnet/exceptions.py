@@ -34,6 +34,11 @@ class AssetDoesNotExistsException(Exception):
     """
     pass
 
+class ContractDoesNotExistsException(Exception):
+    """ The asset does not exist
+    """
+    pass
+
 
 class InvalidAssetException(Exception):
     """ An invalid asset has been provided
