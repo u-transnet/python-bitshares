@@ -549,7 +549,7 @@ class Atomicswap_initiate(GrapheneObject):
                 ('recipient', ObjectId(kwargs["recipient"], "account")),
                 ('amount', Asset(kwargs["amount"])),
                 ('secret_hash', String(kwargs['secret_hash'])),
-                ('metadata', String(kwargs.get('metadata', 'qwerty'))),
+                ('metadata', String(kwargs.get('metadata', ''))),
             ]))
 
 
