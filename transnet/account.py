@@ -71,7 +71,7 @@ class Account(BlockchainObject):
                 if k != "account":
                     self[k] = v
         else:
-            super(Account, self).__init__(account)
+            super(Account, self).__init__(account, transnet_instance=self.transnet)
 
     @property
     def name(self):
