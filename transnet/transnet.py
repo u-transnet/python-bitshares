@@ -460,20 +460,13 @@ class Transnet(object):
     # -------------------------------------------------------------------------
 
     def atomicswap_create_secret_hash(self, secret):
-        def cut_hash(hash_str):
-            entropy_percent = 50
-            entropy = entropy_percent + len(secret) % entropy_percent
-            entropy += 1
-            out_size = int(len(hash_str) * entropy / entropy_percent / 2)
-            return hash_str[:out_size]
-
         def encode_ripemd160(s):
             ripemd160 = hashlib.new('ripemd160')
             ripemd160.update(unhexlify(s))
             return ripemd160.hexdigest()
 
-        sha512_hash = hashlib.sha512(secret)
-        return encode_ripemd160(cut_hash(sha512_hash.hexdigest()))
+        sha256_hash = hashlib.sha256(secret)
+        return encode_ripemd160(sha256_hash.hexdigest())
 
     def atomicswap_initiate(self, operation_type, owner, recipient, amount, asset, secret_hash, **kwargs):
         if not owner:
